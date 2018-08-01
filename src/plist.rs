@@ -28,6 +28,8 @@ pub enum Plist {
     Integer(i64),
     /// A string value
     String(String),
+    /// UID Value
+    Uid(i64),
 }
 
 pub type Array = Vec<Plist>;

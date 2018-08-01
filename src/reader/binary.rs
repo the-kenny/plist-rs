@@ -173,6 +173,21 @@ fn utf16_string<R: Read>(input: &mut R) -> Result<Plist> {
 }
 
 #[inline]
+fn uid<R: Read + Seek>(input: &mut R) -> Result<Plist> {
+    let len = (try!(read_int(input)) as usize) + 1;
+    // panic if the UID doesn't fit into our i64
+    if len > 8 {
+        panic!("Tried to read UID with more than 64 bits.");
+    }
+
+    let mut n: i64 = 0;
+    for (idx, value) in input.bytes().take(len).enumerate() {
+        n = (n << idx) | try!(value) as i64
+    }
+    Ok(Plist::Uid(n))
+}
+
+#[inline]
 fn array<R: Read + Seek>(input: &mut R, ref_size: u8, offsets: &Vec<u64>) -> Result<Plist> {
     let len = try!(read_int(input)) as usize;
     let values = try!(sized_ints(input, ref_size, len));
@@ -228,6 +243,7 @@ fn object<R: Read + Seek>(input: &mut R,
         0x4 => data(input),
         0x5 => string(input),
         0x6 => utf16_string(input),
+        0x8 => uid(input),
         0xA => array(input, ref_size, offsets),
         0xD => dict(input, ref_size, offsets),
         _ => Err(Error::ObjectNotSupported(obj_type)),
